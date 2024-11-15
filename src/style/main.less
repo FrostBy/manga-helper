@@ -1,0 +1,46 @@
+.mangalib {
+    .chapters-all {
+        display: inline-block;
+        margin-top: 2px;
+        vertical-align: top;
+    }
+
+    .platforms {
+        * {
+            color: inherit !important;
+        }
+
+        &.new {
+            span {
+                padding-left: 19px;
+                position: relative;
+
+                &:before {
+                    content: '';
+                    position: absolute;
+                    height: 12px;
+                    width: 12px;
+                    border-radius: 50%;
+                    background: green;
+                    left: 0;
+                    top: calc(50% - 6px);
+                    animation: pulse 1s infinite;
+                }
+                @keyframes pulse {
+                    50% {
+                        transform: scale(0.9);
+                        opacity: 0.5;
+                    }
+                }
+            }
+        }
+
+        &-dropdown {
+            @media (min-width: 992px) {
+                & {
+                    width: 260px;
+                }
+            }
+        }
+    }
+}
