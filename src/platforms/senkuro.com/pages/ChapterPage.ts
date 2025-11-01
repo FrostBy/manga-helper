@@ -4,12 +4,12 @@ import DB from '../../../common/DB';
 import MetaData from '../MetaData';
 
 export default class ChapterPage extends BasePage {
-  private setInvalidateCache: () => void;
+  private setInvalidateCache!: () => void;
 
   protected async initialize() {
     this.setInvalidateCache = async () => {
       const slug = MetaData.getSlug();
-      await DB.set(config.key, slug, 'invalidate', true);
+      DB.set(config.key, slug, 'invalidate', true);
     };
   }
 

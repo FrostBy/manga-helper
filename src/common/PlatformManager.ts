@@ -1,29 +1,41 @@
-import MangalibAPI from '../platforms/mangalib.me/API';
-import SenkuroAPI from '../platforms/senkuro.com/API';
-import MangabuffAPI from '../platforms/mangabuff.ru/API';
-import ReadmangaAPI from '../platforms/readmanga.io/API';
-import MangaOVHAPI from '../platforms/manga.ovh/API';
+import { PluginRegistry } from './PluginRegistry';
+import BasePlatformAPI from './basePlatformAPI';
 
+/**
+ * Platform Manager - provides access to registered platform APIs
+ * Implemented as a Singleton to avoid multiple instances
+ */
 export default class PlatformManager {
-  private platforms: { [key: string]: any } = {};
+  private static instance: PlatformManager;
 
-  constructor() {
-    this.platforms[MangalibAPI.config.key] = MangalibAPI;
-    this.platforms[SenkuroAPI.config.key] = SenkuroAPI;
-    this.platforms[MangabuffAPI.config.key] = MangabuffAPI;
-    this.platforms[ReadmangaAPI.config.key] = ReadmangaAPI;
-    this.platforms[MangaOVHAPI.config.key] = MangaOVHAPI;
+  /**
+   * Private constructor to prevent direct instantiation
+   */
+  private constructor() {}
+
+  /**
+   * Get the singleton instance of PlatformManager
+   */
+  public static getInstance(): PlatformManager {
+    if (!PlatformManager.instance) {
+      PlatformManager.instance = new PlatformManager();
+    }
+    return PlatformManager.instance;
   }
 
-  public getPlatform(platformName: string) {
-    return this.platforms[platformName] || null;
+  public getPlatform(platformKey: string): typeof BasePlatformAPI | null {
+    return PluginRegistry.getPlatform(platformKey) || null;
   }
 
-  public getPlatformKeys() {
-    return Object.keys(this.platforms);
+  public getPlatformKeys(): string[] {
+    return PluginRegistry.getPlatformKeys();
   }
 
-  public getPlatforms() {
-    return this.platforms;
+  public getPlatforms(): Record<string, typeof BasePlatformAPI> {
+    const platforms: Record<string, typeof BasePlatformAPI> = {};
+    for (const [key, api] of PluginRegistry.getAllPlatforms()) {
+      platforms[key] = api;
+    }
+    return platforms;
   }
 }

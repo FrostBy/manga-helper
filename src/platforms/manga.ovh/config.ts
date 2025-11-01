@@ -1,9 +1,9 @@
 import { IConfig } from '../../common/IConfig';
 
 const config: IConfig = {
-  domain: 'manga.ovh',
-  title: 'Manga.ovh',
-  key: 'mangaovh',
+  domain: 'inkstory.me',
+  title: 'Inkstory',
+  key: 'mangaovh', // Keep for DB compatibility
 };
 
 export default config;

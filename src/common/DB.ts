@@ -2,29 +2,22 @@ import Set from 'lodash/set';
 import Get from 'lodash/get';
 import Unset from 'lodash/unset';
 import GMStorage, { Value } from 'gm-storage';
+
 const store = new GMStorage();
 
-export interface Iterable<T> {
-  [Symbol.iterator](): Iterator<T>;
-}
-
-interface DBRecord extends Iterable<[string, any]> {
+interface DBRecord<T = any> {
   expiresAfter?: number;
-  value: any;
+  value: T;
 }
 
-interface PlatformData extends Iterable<[string, any]> {
+interface PlatformData {
   _GLOBAL: {
-    [key: string]: any;
+    [key: string]: DBRecord<any>;
   };
 
   [slug: string]: {
-    [prop: string]: DBRecord;
+    [prop: string]: DBRecord<any>;
   };
-}
-
-interface Database extends Iterable<PlatformData> {
-  [platform: string]: PlatformData;
 }
 
 class DB {
@@ -34,55 +27,59 @@ class DB {
     return data?.expiresAfter && Date.now() >= data.expiresAfter;
   }
 
-  static _generateExpireDate(value: number | boolean) {
-    if (!value) return false;
+  static _generateExpireDate(value: number | boolean): number | false {
     if (value === true) return this.milliseconds + Date.now();
-    if (!isNaN(value)) return +value + Date.now();
+    const num = Number(value);
+    if (num > 0) return num + Date.now();
+    return false;
   }
 
-  static get(
+  static get<T>(
     platform: string,
     slug: string,
     prop: string,
-    defaultValue: any = null,
+    defaultValue?: T,
     getExpired = false,
-  ): DBRecord['value'] {
+  ): T | any {
     const platformData: PlatformData = store.get(platform, {}) as PlatformData;
-    const data: DBRecord | typeof defaultValue = Get(
-      platformData,
-      [slug, prop],
-      defaultValue,
-    );
-    if (!getExpired && this._isExpired(data)) return defaultValue;
+    const data = Get(platformData, [slug, prop], defaultValue);
 
-    return data?.value || defaultValue;
+    // Type guard: check if data is DBRecord
+    if (data && typeof data === 'object' && 'value' in data) {
+      if (!getExpired && this._isExpired(data as DBRecord<T>)) {
+        return defaultValue;
+      }
+      return (data as DBRecord<T>).value;
+    }
+
+    return defaultValue;
   }
 
-  static set(
+  static set<T = any>(
     platform: string,
     slug: string,
     prop: string,
-    data: any,
-    expiryMilliseconds = false,
-  ): DBRecord['value'] {
+    data: T,
+    expiryMilliseconds: number | boolean = false,
+  ): T {
     const oldData: PlatformData = store.get(platform, {}) as PlatformData;
-    data = {
+    const record: DBRecord<T> = {
       value: data,
       expiresAfter: this._generateExpireDate(expiryMilliseconds),
-    } as DBRecord;
-    const newData: PlatformData = Set(oldData, [slug, prop], data);
+    } as DBRecord<T>;
+    const newData: PlatformData = Set(oldData, [slug, prop], record);
     store.set(platform, newData as unknown as Value);
-    return data.value;
+    return record.value;
   }
 
-  static getAndDelete(
+  static getAndDelete<T = any>(
     platform: string,
     slug: string,
     prop: string,
-    defaultValue: any = null,
+    defaultValue?: T,
     getExpired = false,
   ) {
-    const data = this.get(platform, slug, prop, defaultValue, getExpired);
+    const data = this.get<T>(platform, slug, prop, defaultValue, getExpired);
     this.delete(platform, slug, prop);
     return data;
   }
@@ -113,7 +110,7 @@ class DB {
     store.clear();
   }
 
-  static async _getCache(platform: string, slug: string) {
+  static _getCache(platform: string, slug: string) {
     return DB.getAndDelete(platform, slug, `invalidate`)
       ? false
       : this.get(platform, slug, 'cache');

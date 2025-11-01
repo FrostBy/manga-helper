@@ -1,9 +1,9 @@
 import { IConfig } from '../../common/IConfig';
 
 const config: IConfig = {
-  domain: 'readmanga.io',
+  domain: 'a.zazaza.me',
   title: 'ReadManga',
-  key: 'readmanga',
+  key: 'readmanga', // Keep for DB compatibility
 };
 
 export default config;

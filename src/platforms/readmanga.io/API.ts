@@ -2,37 +2,66 @@ import formDataToString from 'formdata-to-string-frontend';
 import BasePlatformAPI from '../../common/basePlatformAPI';
 import config from './config';
 import DB from '../../common/DB';
+import { MangaData, SearchResult } from '../../common/types';
 
 export default class API extends BasePlatformAPI {
   static readonly config = config;
   static readonly link = (slug: string) =>
-    `https://readmanga.io/${slug}#chapters-list`;
+    `https://a.zazaza.me/${slug}#chapters-list`;
 
-  static async search(platform: string, slug: string, titles: string[]) {
-    let websiteSlug = await DB.get(platform, slug, this.config.key);
+  static getSlugFromURL(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      if (!urlObj.hostname.includes(this.config.domain)) {
+        return '';
+      }
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      return pathParts[0] || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  static async search(
+    platform: string,
+    slug: string,
+    titles: string[],
+  ): Promise<SearchResult | false> {
+    let websiteSlug = DB.get(platform, slug, this.config.key, '');
     if (websiteSlug === false) return false;
-    const cache = await DB._getCache(this.config.key, websiteSlug);
-    // if (cache) return this.prepareResponse(this.link, websiteSlug, cache.chapter, cache.lastChapterRead);
+    const cache = DB._getCache(this.config.key, websiteSlug) as MangaData;
+    if (cache)
+      return this.prepareResponse(
+        this.link,
+        websiteSlug,
+        cache.chapter,
+        cache.lastChapterRead,
+      );
 
     if (!websiteSlug) {
-      const requests = titles.map((title) =>
-        this.fetch(
-          `https://readmanga.io/search/suggestion?query=${title}`,
-        ).then((data) => {
-          return data.suggestions
-            ?.find((suggestion: Record<string, any>) =>
-              [suggestion.value, ...(suggestion.names || [])].includes(title),
-            )
-            ?.link.replace('/', '');
-        }),
-      );
+      const requests = titles.map(async (title) => {
+        const url = new URL('https://a.zazaza.me/search/suggestion');
+        url.searchParams.set('query', title);
+        url.searchParams.append('types[]', 'CREATION');
+        url.searchParams.append('types[]', 'FEDERATION_MANGA');
+
+        const data = await this.fetch(url.toString());
+        if (!data || !data.suggestions) {
+          return null;
+        }
+        return data.suggestions
+          ?.find((suggestion: Record<string, any>) =>
+            [suggestion.value, ...(suggestion.names || [])].includes(title),
+          )
+          ?.link.replace('/', '');
+      });
       websiteSlug = (await Promise.all(requests)).filter(Boolean).pop();
     }
 
     if (websiteSlug) {
       const { chapter, lastChapterRead } = await this.getManga(websiteSlug);
       if (chapter) {
-        await DB.set(
+        DB.set(
           this.config.key,
           websiteSlug,
           'cache',
@@ -42,7 +71,7 @@ export default class API extends BasePlatformAPI {
           },
           true,
         );
-        await DB.set(platform, slug, this.config.key, websiteSlug);
+        DB.set(platform, slug, this.config.key, websiteSlug, true);
         return this.prepareResponse(
           this.link,
           websiteSlug,
@@ -55,9 +84,22 @@ export default class API extends BasePlatformAPI {
     return DB.set(platform, slug, this.config.key, false, true);
   }
 
-  static async getManga(slug: string) {
-    const token = DB.get(this.config.key, '_GLOBAL', `token`, '');
-    if (!token) return {};
+  static async getManga(slug: string): Promise<MangaData> {
+    const token = this.getToken();
+    const response = await this.fetch(this.link(slug));
+
+    if (!response) {
+      return { chapter: 0, lastChapterRead: 0 };
+    }
+
+    const chapter = +$(response)
+      .find('#chapters-list td.item-title')
+      .eq(0)
+      .data('num');
+
+    if (!token) {
+      return { chapter: chapter / 10, lastChapterRead: 0 };
+    }
 
     const boundary = 'formdata-' + Math.random().toString(36).slice(2);
     const headers = {
@@ -65,14 +107,13 @@ export default class API extends BasePlatformAPI {
       'content-type': `multipart/form-data; boundary=${boundary}`,
     };
 
-    const response = await this.fetch(this.link(slug));
-    const chapter = +$(response)
-      .find('#chapters-list td.item-title')
-      .eq(0)
-      .data('num');
     const externalId = $(response).find('div#chapters-list').data('id');
     const type = $(response).find('div#chapters-list').data('type');
     const variables = this.extractServerVariables(response);
+
+    if (!variables.xApiUrl) {
+      return { chapter: chapter / 10, lastChapterRead: 0 };
+    }
 
     const responseBookmarks = await this.fetch(
       `${variables.xApiUrl}/api/bookmark/progress`,

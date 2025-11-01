@@ -1,16 +1,22 @@
 import BasePage from './basePage';
+import PlatformManager from './PlatformManager';
 
 export interface IPageConstructor<T extends BasePage> {
-  new (): T; // Конструктор, возвращающий экземпляр BasePage
-  createInstance(): Promise<T>; // Статический метод
+  new (platformManager?: PlatformManager): T;
+  createInstance(platformManager?: PlatformManager): Promise<T>;
 }
+
+export type RoutePathMatcher =
+  | string
+  | ((url: string, query: Record<string, string>) => boolean);
+
 export interface IRoute {
-  path: (url: string, query: Record<string, any>) => boolean;
-  page: IPageConstructor<BasePage>; // Используем интерфейс конструктора
+  path: RoutePathMatcher;
+  page: IPageConstructor<BasePage>;
 }
 
 export interface IRoutesConfig {
-  [key: string]: IRoute; // Индексный тип для маршрутов
+  [key: string]: IRoute;
 }
 
 export interface IConfig {

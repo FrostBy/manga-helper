@@ -27,7 +27,7 @@ const cfg = merge(webpackConfig, {
     path: path.resolve(__dirname, "../dist"),
   },
   devtool: "eval-source-map",
-  watch: true,
+  watch: process.env.WEBPACK_WATCH !== "false",
   watchOptions: {
     ignored: /node_modules/,
   },

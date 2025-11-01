@@ -9,7 +9,8 @@ export default class Router extends BaseRouter {
   static readonly routesConfig = routes;
 
   protected async preInit(): Promise<void> {
-    const history = JSON.parse(localStorage.getItem('history')) || [];
+    const historyData = localStorage.getItem('history');
+    const history = historyData ? JSON.parse(historyData) : [];
     const slug = MetaData.getSlug();
     const existingVisit = history.find(
       (visit: Record<string, any>) => visit.slug === slug,

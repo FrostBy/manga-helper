@@ -1,40 +1,63 @@
 import BasePlatformAPI from '../../common/basePlatformAPI';
 import config from './config';
-import DB from '../../common/DB';
+import { Manga, ChaptersResponse, Bookmark } from '../../common/types';
 
 class API extends BasePlatformAPI {
   static config = config;
 
-  static async getMeta(mangaSlug: string): Promise<Record<string, any>> {
+  static async getMeta(mangaSlug: string): Promise<Manga | null> {
     const baseUrl = `https://api.cdnlibs.org/api/manga/${mangaSlug}`;
 
-    let headers = {};
-    const token = DB.get(this.config.key, '_GLOBAL', `token`, '');
-    if (token) headers = { authorization: `Bearer ${token}` };
+    const headers: Record<string, string> = {
+      'site-id': '1',
+      Referer: 'https://mangalib.me/',
+    };
+
+    const token = this.getToken();
+    if (token) {
+      headers.authorization = `Bearer ${token}`;
+    }
 
     const fields = ['eng_name', 'otherNames'];
 
     const url = new URL(baseUrl);
     fields.forEach((field) => url.searchParams.append('fields[]', field));
 
-    return (await this.fetch(url.toString(), { headers }))?.data;
+    const response = await this.fetch(url.toString(), { headers });
+    return response?.data || null;
   }
 
-  static async getChapters(mangaSlug: string): Promise<any> {
+  static async getChapters(
+    mangaSlug: string,
+  ): Promise<ChaptersResponse | null> {
     const url = `https://api.cdnlibs.org/api/manga/${mangaSlug}/chapters`;
 
-    let headers = {};
-    const token = DB.get(this.config.key, '_GLOBAL', `token`, '');
-    if (token) headers = { authorization: `Bearer ${token}` };
+    const headers: Record<string, string> = {
+      'site-id': '1',
+      Referer: 'https://mangalib.me/',
+    };
+
+    const token = this.getToken();
+    if (token) {
+      headers.authorization = `Bearer ${token}`;
+    }
 
     return this.fetch(url, { headers });
   }
 
-  static async getBookmark(mangaSlug: string): Promise<any> {
+  static async getBookmark(mangaSlug: string): Promise<Bookmark | null> {
     const url = `https://api.cdnlibs.org/api/manga/${mangaSlug}/bookmark`;
-    let headers = {};
-    const token = DB.get(this.config.key, '_GLOBAL', `token`, '');
-    if (token) headers = { authorization: `Bearer ${token}` };
+
+    const headers: Record<string, string> = {
+      'site-id': '1',
+      Referer: 'https://mangalib.me/',
+    };
+
+    const token = this.getToken();
+    if (token) {
+      headers.authorization = `Bearer ${token}`;
+    }
+
     return this.fetch(url, { headers });
   }
 }

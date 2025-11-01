@@ -1,14 +1,15 @@
 import BasePage from '../../../common/basePage';
 import { waitForElm } from '../../../common/DOM';
+import debounce from 'lodash/debounce';
 
 export default class ChapterPage extends BasePage {
-  private scrollListener: () => void;
+  private scrollListener!: () => void;
   private isScrollbarDragging = false;
-  private mouseDownListener: JQuery.EventHandlerBase<
+  private mouseDownListener!: JQuery.EventHandlerBase<
     Window,
     JQuery.MouseDownEvent<Window>
   >;
-  private mouseUpListener: JQuery.EventHandlerBase<
+  private mouseUpListener!: JQuery.EventHandlerBase<
     Window,
     JQuery.MouseUpEvent<Window>
   >;
@@ -16,7 +17,7 @@ export default class ChapterPage extends BasePage {
   protected async initialize() {
     await waitForElm('svg.fa-bookmark');
 
-    this.scrollListener = () => {
+    this.scrollListener = debounce(() => {
       const scrolledTo = window.scrollY + window.innerHeight;
       const isReachBottom = document.body.scrollHeight === scrolledTo;
 
@@ -28,7 +29,7 @@ export default class ChapterPage extends BasePage {
           bookmark.parent().trigger('click');
         $('header a + div + a')[0]?.click();
       }
-    };
+    }, 100);
 
     this.mouseDownListener = (event) => {
       const target = event.target as HTMLElement;

@@ -1,15 +1,24 @@
 import { IConfig, IRoutesConfig } from './IConfig';
 import BasePage from './basePage';
+import PlatformManager from './PlatformManager';
+import { Logger } from './Logger';
 
 export default abstract class BaseRouter {
   static readonly routesConfig: IRoutesConfig;
   static readonly config: IConfig;
-  private prevPage: BasePage;
+
+  private prevPage!: BasePage;
+  protected platformManager: PlatformManager;
+
+  constructor() {
+    // Use singleton PlatformManager for all pages
+    this.platformManager = PlatformManager.getInstance();
+  }
 
   protected abstract preInit(): Promise<void>;
 
   async init() {
-    await this.preInit(); // Выполняем кастомный код перед инициализацией
+    await this.preInit(); // Execute custom code before initialization
 
     const currentPath = window.location.pathname;
     const queryParams = Object.fromEntries(
@@ -25,13 +34,18 @@ export default abstract class BaseRouter {
       return false;
     });
 
+    // Always destroy previous page before creating new one
+    await this.prevPage?.destroy();
+
     if (route) {
-      await this.prevPage?.destroy();
-      const pageInstance = await route.page.createInstance();
+      // Pass PlatformManager to page via dependency injection
+      const pageInstance = await route.page.createInstance(
+        this.platformManager,
+      );
       this.prevPage = pageInstance;
       await pageInstance.render();
     } else {
-      console.error('Page not found');
+      Logger.error('Router', 'Page not found');
     }
   }
 }

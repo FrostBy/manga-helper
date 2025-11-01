@@ -8,11 +8,9 @@ export default class Router extends BaseRouter {
   static readonly routesConfig = routes;
 
   protected async preInit(): Promise<void> {
-    DB.set(
-      Router.config.key,
-      '_GLOBAL',
-      `token`,
-      JSON.parse(localStorage.getItem('gwt')),
-    );
+    const token = localStorage.getItem('gwt');
+    if (token) {
+      DB.set(Router.config.key, '_GLOBAL', `token`, JSON.parse(token));
+    }
   }
 }

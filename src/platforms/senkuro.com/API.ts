@@ -1,5 +1,7 @@
 import BasePlatformAPI from '../../common/basePlatformAPI';
 import config from './config';
+import { Logger } from '../../common/Logger';
+import type { MangaData, SearchResult } from '../../common/types';
 import DB from '../../common/DB';
 
 export default class API extends BasePlatformAPI {
@@ -7,10 +9,29 @@ export default class API extends BasePlatformAPI {
   static readonly link = (slug: string) =>
     `https://senkuro.me/manga/${slug}/chapters`;
 
-  static async search(platform: string, slug: string, titles: string[]) {
-    const websiteSlug = await DB.get(platform, slug, this.config.key);
+  static getSlugFromURL(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      if (!urlObj.hostname.includes(this.config.domain)) {
+        return '';
+      }
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      return pathParts[1] || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  static async search(
+    platform: string,
+    slug: string,
+    titles: string[],
+  ): Promise<SearchResult | false> {
+    let websiteSlug = DB.get(platform, slug, this.config.key, '');
     if (websiteSlug === false) return false;
-    const cache = await DB._getCache(this.config.key, websiteSlug);
+
+    const cache = DB._getCache(this.config.key, websiteSlug) as MangaData;
+
     if (cache)
       return this.prepareResponse(
         this.link,
@@ -18,7 +39,9 @@ export default class API extends BasePlatformAPI {
         cache.chapter,
         cache.lastChapterRead,
       );
-    let slugs = [websiteSlug];
+
+    let slugs: string[] = [websiteSlug];
+
     if (!websiteSlug) {
       const response = await this.fetch('https://api.senkuro.me/graphql', {
         method: 'POST',
@@ -37,8 +60,13 @@ export default class API extends BasePlatformAPI {
           variables: { query: titles[0], type: 'MANGA' },
         }),
       });
+
+      if (!response || !response.data?.search?.edges) {
+        return false;
+      }
+
       const tempSlugs: string[] = [];
-      let entity = response?.data?.search.edges.find(
+      let entity = response.data.search.edges.find(
         (entity: Record<string, any>) => {
           tempSlugs.push(entity.node.slug);
           const entityTitles = [
@@ -53,16 +81,21 @@ export default class API extends BasePlatformAPI {
 
       slugs = entity?.node.slug ? [entity.node.slug] : tempSlugs;
     }
+
     for (const entitySlug of slugs) {
       const data = await this.getManga(entitySlug);
-      console.log(data);
+      Logger.debug('SenkuroAPI', 'Manga data fetched', data);
+
+      if (!data || !data.manga) {
+        continue;
+      }
 
       if (
-        data?.manga?.alternativeNames.map((name: Record<string, any>) =>
+        data.manga.alternativeNames?.some((name: Record<string, any>) =>
           titles.includes(name.content),
         )
       ) {
-        await DB.set(
+        DB.set(
           this.config.key,
           data.manga.slug,
           'cache',
@@ -73,7 +106,7 @@ export default class API extends BasePlatformAPI {
           true,
         );
 
-        await DB.set(platform, slug, this.config.key, data.manga.slug);
+        DB.set(platform, slug, this.config.key, data.manga.slug, true);
 
         return this.prepareResponse(
           this.link,
@@ -87,10 +120,12 @@ export default class API extends BasePlatformAPI {
     return DB.set(platform, slug, this.config.key, false, true);
   }
 
-  static async getManga(slug: string) {
+  static async getManga(
+    slug: string,
+  ): Promise<(MangaData & { manga: any }) | undefined> {
     let headers = {};
 
-    const token = DB.get(this.config.key, '_GLOBAL', `token`, '');
+    const token = this.getToken();
     if (token) headers = { authorization: `Bearer ${token}` };
 
     const response = await this.fetch('https://api.senkuro.me/graphql', {

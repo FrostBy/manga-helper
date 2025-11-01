@@ -1,89 +1,30 @@
 import BasePage from '../../../common/basePage';
 import { waitForElm } from '../../../common/DOM';
 import MetaData from '../MetaData';
-import tippy, { Instance } from 'tippy.js';
-import API from '../API';
-import config from '../config';
+import PlatformManager from '../../../common/PlatformManager';
+import { ChaptersResponse } from '../../../common/types';
+import { MangaDataService } from './MangaDataService';
+import { MangaPageUI } from './MangaPageUI';
 
+/**
+ * MangaPage - координатор для страницы манги
+ * Использует MangaDataService для данных и MangaPageUI для рендеринга
+ */
 export default class MangaPage extends BasePage {
-  // language=HTML
-  private static loaderDOM: string = `
-    <div class="loader-wrapper _size-sm btn__loader">
-      <svg class="loader size-sm" viewBox="25 25 50 50" xmlns="http://www.w3.org/2000/svg">
-        <circle class="path" fill="none" stroke-width="4" stroke-miterlimit="10" stroke-linecap="round" cx="50" cy="50"
-                r="20"></circle>
-      </svg>
-    </div>`;
+  private dataService: MangaDataService;
+  private ui: MangaPageUI;
 
-  private static dropdownButtonDOM = () => {
-    const group = $('.fade.container .btns._group').clone();
-    group.find('span').text('Открыть на сайте');
-    group.find('.fa-bookmark').remove();
-    group.find('.fa-plus').remove();
-    group.addClass('platforms');
-    return group;
-  };
+  // Page data (state)
+  private slug!: string;
+  private state!: string;
+  private titles!: string[];
+  private chapters!: ChaptersResponse | null;
 
-  // language=HTML
-  private static dropdownListDOM: string = `
-    <div class="dropdown-menu">
-      <div class="platforms-dropdown">
-        <div class="menu">
-          <div class="menu-list scrollable">
-            <div class="menu-item">
-              <div class="menu-item__text"><a href="#"></a></div>
-              <svg class="svg-inline--fa fa-plus menu-item__icon menu-item__icon_right" aria-hidden="true"
-                   focusable="false" data-prefix="fas"
-                   data-icon="plus" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
-                <title>Добавить ссылку</title>
-                <path class="" fill="currentColor"
-                      d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z"></path>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // language=HTML
-  private static modalDOM: string = `
-    <div class="modal" id="edit-link-modal">
-      <div class="modal__inner">
-        <div class="modal__content" data-size="small">
-          <div class="modal__header">
-            <div class="modal__title text-center">Изменить ссылку</div>
-            <div class="modal__close" data-close-modal>
-              <svg class="modal__close-icon">
-                <use xlink:href="#icon-close"></use>
-              </svg>
-            </div>
-          </div>
-          <div class="modal__body">
-            <form>
-              <div class="form__field">
-                <div class="form__label flex justify_between align-items_end">
-                  <span>Ссылка на произведение</span>
-                </div>
-                <input type="url" name="link" class="form__input" placeholder="Ссылка на произведение" />
-              </div>
-              <div class="form__footer">
-                <button class="button button_md button_green button_save" type="submit"
-                        data-close-modal>
-                  <i class="fa fa-floppy-o far fa-save fa-fw"></i>
-                  Сохранить
-                </button>
-                <button class="button button_md button_red button_clean" data-close-modal>
-                  <i class="fa fa-trash-o far fa-trash-alt fa-fw fa-sm"></i>
-                  Удалить
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+  constructor(platformManager?: PlatformManager) {
+    super(platformManager);
+    this.dataService = new MangaDataService(this.platformManager);
+    this.ui = new MangaPageUI();
+  }
 
   private selectTab(tab: JQuery<HTMLElement>) {
     tab.rawClick();
@@ -96,127 +37,167 @@ export default class MangaPage extends BasePage {
     }
   }
 
-  private async renderChaptersInTab(tab: JQuery<HTMLElement>) {
-    const totalChapters = this.chapters.data.length;
-    const lastChapter = this.chapters.data.at(-1)?.number;
-    const totalChaptersDOM = `<small class="chapters-all">[${this.chapters.data.length + 1}]</small>`;
-    tab.html(
-      tab.text() +
-        ` <span>(${this.chapters.data.at(-1)?.number || 0}${lastChapter === totalChapters ? totalChaptersDOM : ''})</span>`,
-    );
-  }
-
-  private toggleLoader(element: JQuery<HTMLElement>) {
-    element.has('.loader-wrapper').length
-      ? element.find('.loader-wrapper').remove()
-      : element.prepend(MangaPage.loaderDOM);
-  }
-
-  private async renderPlatformList() {
-    const buttonGroup = $('.fade.container .btns._group');
-    const openOnPlatforms = MangaPage.dropdownButtonDOM();
-    buttonGroup.after(openOnPlatforms);
-
-    this.toggleLoader(openOnPlatforms.find('button').eq(0));
-
-    const content = $(MangaPage.dropdownListDOM);
-    const listItem = content.find('.menu-item').clone();
-    content.find('.menu-item').remove();
-
-    let moreChapters = false;
-    const apis = this.platformManager.getPlatforms();
-    let dataArr = await Promise.all(
-      Object.keys(apis).map(async (platform) => {
-        if (platform === config.key) return;
-        try {
-          const data = await apis[platform].search(
-            config.key,
-            this.slug,
-            this.titles,
-          );
-          if (!data) return false;
-          data.platform = apis[platform].config.title;
-          moreChapters =
-            moreChapters ||
-            this.chapters.data.at(-1)?.number < data.lastChapterRead;
-          return data;
-        } catch (e: unknown) {
-          console.error(e);
-        }
-      }),
-    );
-
-    dataArr = dataArr.filter(Boolean).sort((a, b) => {
-      if (!b.chapter) return -1;
-      return b.chapter - a.chapter || b.lastChapterRead - a.lastChapterRead;
-    });
-
-    for (const { chapter, lastChapterRead, platform, url } of dataArr) {
-      const item = listItem.clone();
-      item
-        .find('a')
-        .text(`${platform} | ${chapter || '0'} (${lastChapterRead || '0'})`)
-        .attr('href', `${url || '#'}`);
-      content.find('.menu-list').append(item);
-    }
-
-    if (moreChapters) openOnPlatforms.addClass('new');
-
-    this.tippy = tippy('.platforms', {
-      content: content.prop('outerHTML'),
-      allowHTML: true,
-      trigger: 'click',
-      interactive: true,
-      arrow: false,
-      placement: 'bottom-start',
-      animation: 'shift-toward',
-      duration: 200,
-      offset: [0, 7],
-      theme: 'dropdown',
-      appendTo: document.body,
-      hideOnClick: 'toggle',
-    })[0];
-    this.tippy.show();
-    this.toggleLoader(openOnPlatforms.find('button').eq(0));
-  }
-
-  private tippy: Instance;
-  private slug: string;
-  private meta: Record<string, any>;
-  private state: string;
-  private lastChapterRead: number;
-  private titles: string[];
-  private chapters: Record<string, any>;
-
   protected async initialize() {
     await waitForElm('.tabs-menu');
+
+    // Get current manga slug
     this.slug = MetaData.getSlug();
-    this.chapters = await API.getChapters(this.slug);
-    this.meta = await API.getMeta(this.slug);
-    this.lastChapterRead =
-      +(await API.getBookmark(this.slug))?.data?.item?.number || 0;
-    this.titles = [
-      this.meta.rus_name,
-      this.meta.name,
-      this.meta.eng_name,
-      ...(this.meta.otherNames || []),
-    ];
+
+    // Get UI state (reading status button, etc.)
     this.state = $('.fade.container .btns._group span').text().trim();
+
+    // Load data via DataService
+    const data = await this.dataService.fetchMangaData(this.slug);
+    this.chapters = data.chapters;
+    this.titles = data.titles;
   }
 
   async render() {
     const tabsWrapper = $('.tabs-menu');
     const chaptersTab = tabsWrapper.find('.tabs-item .tabs-item__inner').eq(1);
 
+    // Select chapters tab
     this.selectTab(chaptersTab);
-    await this.renderChaptersInTab(chaptersTab);
-    await this.renderPlatformList();
+
+    // Render chapter info
+    this.ui.renderChaptersInTab(chaptersTab, this.chapters);
+
+    // Show button with spinner immediately
+    this.ui.renderPlatformButton();
+
+    // Search manga on other platforms (in background)
+    const platforms = await this.dataService.searchOnPlatforms(
+      this.titles,
+      this.slug,
+    );
+
+    // Check if any platform has more chapters
+    const lastChapterNumber = this.chapters?.data?.at(-1)?.number || 0;
+    const hasMoreChapters = platforms.some(
+      (p) => p.lastChapterRead > lastChapterNumber,
+    );
+
+    // Update dropdown with data
+    this.ui.updatePlatformList(platforms, hasMoreChapters, this.slug);
+
+    this.setupModalHandlers();
+  }
+
+  private setupModalHandlers() {
+    const self = this;
+
+    $('body').on('click', '.edit-link', async function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const $modal = $('#edit-link-modal');
+      const platformKey = $(this).data('platform');
+      const sourceSlug = $(this).data('source-slug');
+
+      $modal.data('platform', platformKey);
+      $modal.data('source-slug', sourceSlug);
+
+      const savedSlug = await self.dataService.getSavedSlug(
+        sourceSlug,
+        platformKey,
+      );
+      const platform = self.platformManager.getPlatform(platformKey);
+      const url = savedSlug && platform ? platform.link(savedSlug) : '';
+
+      $modal.find('input[name="link"]').val(url);
+
+      // Update second button based on whether slug exists
+      const $cleanButton = $modal.find('.button_clean');
+      if (savedSlug) {
+        $cleanButton.html(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+            <path d="M232.7 69.9L224 96L128 96C110.3 96 96 110.3 96 128C96 145.7 110.3 160 128 160L512 160C529.7 160 544 145.7 544 128C544 110.3 529.7 96 512 96L416 96L407.3 69.9C402.9 56.8 390.7 48 376.9 48L263.1 48C249.3 48 237.1 56.8 232.7 69.9zM512 208L128 208L149.1 531.1C150.7 556.4 171.7 576 197 576L443 576C468.3 576 489.3 556.4 490.9 531.1L512 208z"/>
+          </svg>
+          Удалить
+        `);
+        $cleanButton.attr('data-action', 'delete');
+      } else {
+        $cleanButton.html(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+            <path d="M183.1 137.4C170.6 124.9 150.3 124.9 137.8 137.4C125.3 149.9 125.3 170.2 137.8 182.7L275.2 320L137.9 457.4C125.4 469.9 125.4 490.2 137.9 502.7C150.4 515.2 170.7 515.2 183.2 502.7L320.5 365.3L457.9 502.6C470.4 515.1 490.7 515.1 503.2 502.6C515.7 490.1 515.7 469.8 503.2 457.3L365.8 320L503.1 182.6C515.6 170.1 515.6 149.8 503.1 137.3C490.6 124.8 470.3 124.8 457.8 137.3L320.5 274.7L183.1 137.4z"/>
+          </svg>
+          Отмена
+        `);
+        $cleanButton.attr('data-action', 'close');
+      }
+
+      $modal.addClass('is-open');
+      $('body').addClass('modal-open');
+    });
+
+    $(document).on('submit', '#edit-link-form', async function (e) {
+      e.preventDefault();
+      const $modal = $('#edit-link-modal');
+      const platformKey = $modal.data('platform');
+      const sourceSlug = $modal.data('source-slug');
+      const url = $modal.find('input[name="link"]').val() as string;
+
+      const platform = self.platformManager.getPlatform(platformKey);
+      if (!platform) return;
+
+      const extractedSlug = platform.getSlugFromURL(url);
+      await self.dataService.saveSlug(sourceSlug, platformKey, extractedSlug);
+
+      unsafeWindow.location.reload();
+    });
+
+    $(document).on(
+      'click',
+      '#edit-link-modal .button_clean',
+      async function () {
+        const $modal = $('#edit-link-modal');
+        const action = $(this).attr('data-action');
+
+        if (action === 'delete') {
+          const platformKey = $modal.data('platform');
+          const sourceSlug = $modal.data('source-slug');
+
+          await self.dataService.deleteSlug(sourceSlug, platformKey);
+          unsafeWindow.location.reload();
+        } else {
+          // Just close modal
+          $modal.removeClass('is-open');
+          $('body').removeClass('modal-open');
+        }
+      },
+    );
+
+    $(document).on('click', '[data-close-modal]', function (e) {
+      e.preventDefault();
+      const $modal = $('#edit-link-modal');
+      $modal.removeClass('is-open');
+      $('body').removeClass('modal-open');
+    });
+
+    $(document).on('click', '#edit-link-modal', function (e) {
+      if (e.target === this) {
+        const $modal = $('#edit-link-modal');
+        $modal.removeClass('is-open');
+        $('body').removeClass('modal-open');
+      }
+    });
   }
 
   async destroy() {
-    const tabsWrapper = $('.tabs-menu');
-    const chaptersTab = tabsWrapper.find('.tabs-item .tabs-item__inner').eq(1);
-    chaptersTab.find('span').remove();
-    this.tippy?.unmount();
+    // Remove all event listeners
+    $('body').off('click', '.edit-link');
+    $(document).off('submit', '#edit-link-form');
+    $(document).off('click', '#edit-link-modal .button_clean');
+    $(document).off('click', '[data-close-modal]');
+    $(document).off('click', '#edit-link-modal');
+
+    // Remove modal from DOM
+    $('#edit-link-modal').remove();
+
+    // Remove platform button
+    $('.platforms').remove();
+
+    // Destroy UI
+    this.ui.destroy();
   }
 }

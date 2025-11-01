@@ -29,9 +29,9 @@ module.exports = {
     'https://mangalib.me/*',
     'https://*.senkuro.com/*',
     'https://*.senkuro.me/*',
-    'https://*.readmanga.io/*',
+    'https://a.zazaza.me/*',
     'https://mangabuff.ru/*',
-    'https://manga.ovh/*'
+    'https://inkstory.me/*'
   ],
   require: [
     `https://cdn.jsdelivr.net/npm/jquery@${dependencies.jquery}/dist/jquery.min.js`,
@@ -59,6 +59,6 @@ module.exports = {
     'GM.getResourceText',
     'GM.addStyle'
   ],
-  connect: ['mangalib.me', 'senkuro.com', 'readmanga.io', 'api.rmr.rocks', 'mangabuff.ru', 'manga.ovh', 'api.cdnlibs.org', 'senkuro.me', 'api.senkuro.me', 'api.senkuro.com'],
+  connect: ['mangalib.me', 'senkuro.com', 'a.zazaza.me', 'api.rmr.rocks', 'mangabuff.ru', 'inkstory.me', 'api.inkstory.me', 'api.cdnlibs.org', 'senkuro.me', 'api.senkuro.me', 'api.senkuro.com'],
   'run-at': 'document-end'
 };
