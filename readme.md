@@ -1,86 +1,133 @@
-# This is a project help you build userscript with webpack
+# TamperMonkey расширение для синхронизации прогресса чтения манги между платформами
 
-Just [use this git repo as a template](https://github.com/Trim21/webpack-userscript-template/generate).
+## Описание
+Этот проект представляет собой TamperMonkey расширение, которое позволяет отслеживать прогресс чтения манги на различных платформах и находить альтернативные источники с большим количеством глав.
 
-[中文说明](./readme.cn.md)
+## Поддерживаемые платформы
+- MangaLib.me
+- Senkuro.com
+- MangaBuff.ru
+- ReadManga.io (Mintmanga)
+- Inkstory.me (ранее Manga.ovh)
 
-## dev
+## Основные возможности
+- Автоматическая синхронизация прогресса чтения между платформами
+- Поиск альтернативных источников манги
+- Отображение количества доступных глав на других платформах
+- Автоматический переход на следующую главу при прокрутке страницы
 
-1. Allow Tampermonkey's access to local file URIs [tampermonkey/faq](https://tampermonkey.net/faq.php?ext=dhdg#Q204)
-2. install deps with `npm i` or `npm ci`.
-3. `npm run dev` to start your development.
+## Известные проблемы
+В настоящее время известных критичных проблем нет. При обнаружении багов создавайте [issue](https://github.com/FrostBy/manga-helper/issues).
 
-Now you will see 2 files in `./dist/`
+## Лицензия и поддержка
+Код распространяется с возможностью использования, модификации и распространения с указанием авторства.
 
--   `dist/index.dev.user.js`: **You should install this userscript in your browser.** It's a simple loader that load `dist/index.debug.js` on matched web page.
--   `dist/index.debug.js`: This is the development build with `eval-source-map`. It will be automatically loaded by `dist/index.dev.user.js` via `@require file://.../dist/index.debug.js` metadata, **Don't add it to your userscript manager.**
+**Важно:** Коммерческое использование требует явного разрешения автора. По вопросам обращайтесь на frost.by@gmail.com.
 
-4. edit [src/index.ts](./src/index.ts), you can even import css or less files. You can use scss if you like.
-5. go wo <https://www.example.com/> and open console, you'll see it's working.
+Поддержать разработку можно через [Buy Me a Coffee](https://www.buymeacoffee.com/frostby).
 
-livereload is default enabled, use [this Chrome extension](https://chrome.google.com/webstore/detail/jnihajbhpnppcggbcgedagnkighmdlei)
+## Разработка
 
-### NOTICE
+### Требования
+- Node.js (рекомендуется последняя LTS версия)
+- TamperMonkey или аналогичный менеджер userscript'ов
 
-Everytime you change your metadata config,
-you'll have to restart webpack server and install newly generated `dist/index.dev.user.js` UserScript in your browser again.
+### Настройка окружения
 
-## used package
+1. **Разрешите TamperMonkey доступ к локальным файлам**
 
-If you prefer some other bundler like rollup, you can use some of these packages directly.
+   Следуйте инструкции: [TamperMonkey FAQ](https://tampermonkey.net/faq.php?ext=dhdg#Q204)
 
-[userscript-metadata-generator](https://github.com/trim21/userscript-metadata-generator)
+2. **Установите зависимости**
+   ```bash
+   npm i
+   # или
+   npm ci
+   ```
 
-[gm-fetch](https://github.com/trim21/gm-fetch)
+3. **Запустите режим разработки**
+   ```bash
+   npm run dev
+   ```
 
-[userscript-metadata-webpack-plugin](https://github.com/trim21/userscript-metadata-webpack-plugin)
+   После этого в папке `./dist/` появятся два файла:
 
-## Cross Site Request
+   - **`dist/index.dev.user.js`** - установите этот userscript в браузер. Это простой загрузчик, который подгружает `dist/index.debug.js` на нужных страницах.
+   - **`dist/index.debug.js`** - сборка для разработки с source maps. Автоматически загружается через `@require file://.../dist/index.debug.js`. **Не добавляйте его в менеджер userscript'ов вручную.**
 
-you can call `GM.xmlHttpRequest` directly or use a fetch API based on `GM.xmlHttpRequest` <https://github.com/Trim21/gm-fetch>
+4. **Редактируйте код**
 
-## TypeScript
+   Основная точка входа: `src/index.ts`
 
-use typescript as normal, see [example](src/index.ts)
+   Вы можете импортировать CSS, LESS и SCSS файлы прямо в TypeScript.
 
-## dependencies
+5. **Используйте livereload** (опционально)
 
-There are two ways to using a package on npm.
+   Для автоматической перезагрузки при изменениях используйте [Chrome расширение](https://chrome.google.com/webstore/detail/jnihajbhpnppcggbcgedagnkighmdlei)
 
-### UserScript way
+### Важно
 
-like original UserScript way, you will need to add them to your [user script metadata's require section](./config/metadata.cjs#L16-L18) , and exclude them in [config/webpack.config.base.cjs](./config/webpack.config.base.cjs#L18-L20)
+При изменении метаданных userscript'а (`config/metadata.cjs`) необходимо:
+1. Перезапустить webpack сервер (`npm run dev`)
+2. Заново установить обновленный `dist/index.dev.user.js` в браузере
 
-### Webpack way
-
-just install packages with npm and import them in your code, webpack will take care them.
-
-## Build
+## Сборка для production
 
 ```bash
 npm run build
 ```
 
-`dist/index.prod.user.js` is the final script. you can manually copy it to greasyfork for deploy.
+Результат сборки: `dist/index.prod.user.js` - готовый скрипт для публикации на GreasyFork или других платформах.
 
-### Minify
+### Минификация
 
-There is a [limitation in greasyfork](https://greasyfork.org/en/help/code-rules), your code must not be obfuscated or minified.
+В соответствии с [правилами GreasyFork](https://greasyfork.org/en/help/code-rules), код не должен быть обфусцирован или минифицирован. Минификация отключена по умолчанию.
 
-If you don't need to deploy your script to greasyfork, enable minify as you like.
+## Структура проекта
 
-## automatically Deploy
+```
+src/
+├── common/           # Общие компоненты и утилиты
+│   ├── DB.ts        # Работа с хранилищем
+│   ├── Logger.ts    # Система логирования
+│   └── ...
+├── platforms/       # Реализации для каждой платформы
+│   ├── mangalib.me/
+│   ├── senkuro.com/
+│   └── ...
+└── index.ts         # Точка входа
+```
 
-[github actions](./.github/workflows/deploy.yaml#L36) will deploy production userscript to gh-pages branch.
+## TypeScript
 
-[example](https://github.com/Trim21/webpack-userscript-template/tree/gh-pages)
+Проект полностью написан на TypeScript.
 
-[deployed](https://trim21.github.io/webpack-userscript-template/index.prod.user.js)
+## Зависимости
 
-You can auto use greasyfork's auto update function.
+### UserScript способ
+Некоторые библиотеки подключаются через `@require` в [metadata.cjs](./config/metadata.cjs) и исключаются из bundle в [webpack.config.base.cjs](./config/webpack.config.base.cjs).
 
-## Q&A
+### Webpack способ
+Большинство зависимостей устанавливаются через npm и бандлятся webpack'ом.
 
-you may find enabling source map not working well in production code, because Tampermonkey will add extra lines (all your `@require`) before your script. I don't know if there is a good fix for this, You need to use webpack config `devtool` with `eval` prefix to make it work as expected, so source map is disabled in this production build.
+## Автоматический деплой
 
-<https://webpack.js.org/configuration/devtool/#development>
+GitHub Actions автоматически деплоит production сборку в ветку `gh-pages`.
+
+Результат доступен по адресу: `https://frostby.github.io/manga-helper/index.prod.user.js`
+
+Можно использовать с функцией автообновления GreasyFork.
+
+## Вопросы и ответы
+
+**Q: Source maps не работают в production?**
+
+A: TamperMonkey добавляет дополнительные строки (`@require`) перед вашим скриптом, что сбивает маппинг. Используйте `devtool` с префиксом `eval` для разработки.
+
+## Вклад в разработку
+
+Pull requests приветствуются! Для крупных изменений сначала создайте issue для обсуждения.
+
+## Автор
+
+FrostBy - [GitHub](https://github.com/FrostBy)
