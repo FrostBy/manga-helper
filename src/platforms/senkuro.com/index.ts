@@ -1,6 +1,6 @@
 /**
- * Senkuro.com platform plugin
- * Auto-registers itself with the PluginRegistry
+ * Плагин платформы Senkuro.com
+ * Автоматически регистрируется в PluginRegistry
  */
 import { PluginRegistry } from '../../common/PluginRegistry';
 import API from './API';

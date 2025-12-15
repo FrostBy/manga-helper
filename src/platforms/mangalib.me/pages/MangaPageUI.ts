@@ -126,7 +126,7 @@ export class MangaPageUI {
     if (!item.length) return;
 
     item.find('.platform-stats').html('<span class="inline-loader">...</span>');
-    item.find('a').css({ opacity: '1' }); // Reset opacity
+    item.find('a').css({ opacity: '1' }); // Сбрасываем opacity
   }
 
   /**
@@ -145,12 +145,12 @@ export class MangaPageUI {
     item.find('.platform-stats').text(statsText);
     $link.attr('href', data.url);
 
-    // If title not found (no slug) - visually dim with opacity
+    // Если тайтл не найден (нет slug) - затемняем визуально
     if (!data.slug) {
       $link.css({ opacity: '0.6' });
     }
 
-    // If this platform has more chapters than current - highlight button
+    // Если на платформе больше глав чем на текущей - подсвечиваем кнопку
     if (data.chapter && data.chapter > currentChapter) {
       $('.platforms').addClass('new');
     }

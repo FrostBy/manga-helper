@@ -4,7 +4,7 @@ import DB from './common/DB';
 import { PluginRegistry } from './common/PluginRegistry';
 import { Logger } from './common/Logger';
 
-// Import all platforms to trigger auto-registration
+// Импортируем все платформы для авто-регистрации
 import './platforms/mangalib.me';
 import './platforms/senkuro.com';
 import './platforms/mangabuff.ru';
@@ -12,7 +12,7 @@ import './platforms/readmanga.io';
 import './platforms/manga.ovh';
 
 async function init() {
-  // Initialize logger (exposed in unsafeWindow for debugging)
+  // Инициализируем логгер (доступен в unsafeWindow для дебага)
   Logger.init();
 
   global.tokens = {};

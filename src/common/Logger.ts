@@ -25,7 +25,7 @@ export class Logger {
       this.currentLevel = parseInt(saved, 10);
     }
 
-    // Expose to unsafeWindow for debugging
+    // Экспортируем в unsafeWindow для дебага
     if (typeof unsafeWindow !== 'undefined') {
       unsafeWindow.MangaHelperLogger = {
         setLevel: (level: LogLevel) => this.setLevel(level),

@@ -3,17 +3,17 @@ import BaseRouter from './baseRouter';
 import { Logger } from './Logger';
 
 /**
- * Central registry for platform plugins
- * Allows platforms to self-register and eliminates hardcoded platform lists
+ * Центральный реестр плагинов платформ
+ * Позволяет платформам саморегистрироваться, исключая хардкод списков
  */
 export class PluginRegistry {
   private static platforms = new Map<string, typeof BasePlatformAPI>();
   private static routers = new Map<string, typeof BaseRouter>();
 
   /**
-   * Register a platform plugin
-   * @param api Platform API class
-   * @param router Platform Router class
+   * Зарегистрировать плагин платформы
+   * @param api Класс API платформы
+   * @param router Класс Router платформы
    */
   static register(
     api: typeof BasePlatformAPI,
@@ -35,19 +35,19 @@ export class PluginRegistry {
   }
 
   /**
-   * Find router by domain name
-   * @param domain Current page domain
-   * @returns Router class constructor or undefined
+   * Найти роутер по доменному имени
+   * @param domain Домен текущей страницы
+   * @returns Конструктор класса Router или undefined
    */
   static findRouterByDomain(
     domain: string,
   ): (new () => BaseRouter) | undefined {
-    // Direct match
+    // Прямое совпадение
     if (this.routers.has(domain)) {
       return this.routers.get(domain) as unknown as new () => BaseRouter;
     }
 
-    // Subdomain match (e.g., "sub.mangalib.me" matches "mangalib.me")
+    // Совпадение субдомена (напр. "sub.mangalib.me" совпадает с "mangalib.me")
     for (const [registeredDomain, router] of this.routers.entries()) {
       if (domain.endsWith('.' + registeredDomain)) {
         return router as unknown as new () => BaseRouter;
@@ -58,34 +58,34 @@ export class PluginRegistry {
   }
 
   /**
-   * Get platform API by key
-   * @param key Platform key (e.g., "mangalib")
-   * @returns Platform API class or undefined
+   * Получить API платформы по ключу
+   * @param key Ключ платформы (напр. "mangalib")
+   * @returns Класс API платформы или undefined
    */
   static getPlatform(key: string): typeof BasePlatformAPI | undefined {
     return this.platforms.get(key);
   }
 
   /**
-   * Get all registered platform APIs
-   * @returns Map of all platforms
+   * Получить все зарегистрированные API платформ
+   * @returns Map всех платформ
    */
   static getAllPlatforms(): Map<string, typeof BasePlatformAPI> {
     return new Map(this.platforms);
   }
 
   /**
-   * Get all registered platform keys
-   * @returns Array of platform keys
+   * Получить все зарегистрированные ключи платформ
+   * @returns Массив ключей платформ
    */
   static getPlatformKeys(): string[] {
     return Array.from(this.platforms.keys());
   }
 
   /**
-   * Check if platform is registered
-   * @param key Platform key
-   * @returns true if registered
+   * Проверить зарегистрирована ли платформа
+   * @param key Ключ платформы
+   * @returns true если зарегистрирована
    */
   static hasPlatform(key: string): boolean {
     return this.platforms.has(key);

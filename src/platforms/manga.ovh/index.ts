@@ -1,6 +1,6 @@
 /**
- * Manga.ovh platform plugin
- * Auto-registers itself with the PluginRegistry
+ * Плагин платформы Inkstory (Manga.ovh)
+ * Автоматически регистрируется в PluginRegistry
  */
 import { PluginRegistry } from '../../common/PluginRegistry';
 import API from './API';

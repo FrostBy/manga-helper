@@ -1,6 +1,6 @@
 /**
- * Mangabuff.ru platform plugin
- * Auto-registers itself with the PluginRegistry
+ * Плагин платформы Mangabuff.ru
+ * Автоматически регистрируется в PluginRegistry
  */
 import { PluginRegistry } from '../../common/PluginRegistry';
 import API from './API';

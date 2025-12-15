@@ -1,10 +1,10 @@
 /**
- * Domain types for manga-helper
- * These types represent the core data structures used across all platforms
+ * Доменные типы для manga-helper
+ * Базовые структуры данных используемые на всех платформах
  */
 
 /**
- * Represents a single chapter of a manga
+ * Одна глава манги
  */
 export interface Chapter {
   id?: string | number;
@@ -12,19 +12,19 @@ export interface Chapter {
   title?: string;
   volume?: number;
   createdAt?: string;
-  [key: string]: unknown; // Allow platform-specific fields
+  [key: string]: unknown; // Платформо-специфичные поля
 }
 
 /**
- * Response containing multiple chapters
+ * Ответ с несколькими главами
  */
 export interface ChaptersResponse {
   data: Chapter[];
-  [key: string]: unknown; // Allow platform-specific metadata
+  [key: string]: unknown; // Платформо-специфичные метаданные
 }
 
 /**
- * Represents manga metadata
+ * Метаданные манги
  */
 export interface Manga {
   slug?: string;
@@ -35,11 +35,11 @@ export interface Manga {
   cover?: string;
   description?: string;
   status?: string;
-  [key: string]: unknown; // Allow platform-specific fields
+  [key: string]: unknown; // Платформо-специфичные поля
 }
 
 /**
- * User's bookmark/reading progress for a manga
+ * Закладка/прогресс чтения пользователя
  */
 export interface Bookmark {
   chapter: number;
@@ -51,15 +51,15 @@ export interface Bookmark {
     };
     [key: string]: unknown;
   };
-  [key: string]: unknown; // Allow platform-specific fields
+  [key: string]: unknown; // Платформо-специфичные поля
 }
 
 /**
- * Result of searching for manga on another platform
+ * Результат поиска манги на другой платформе
  */
 export interface SearchResult {
   platform: string;
-  platformKey: string; // Key like "senkuro.com", "readmanga.io"
+  platformKey: string; // Ключ типа "senkuro.com", "readmanga.io"
   url: string;
   slug: string;
   chapter: number;
@@ -67,7 +67,7 @@ export interface SearchResult {
 }
 
 /**
- * API response wrapper for getManga
+ * Обёртка ответа API для getManga
  */
 export interface MangaData {
   chapter: number;

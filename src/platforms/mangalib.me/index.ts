@@ -1,6 +1,6 @@
 /**
- * Mangalib.me platform plugin
- * Auto-registers itself with the PluginRegistry
+ * Плагин платформы Mangalib.me
+ * Автоматически регистрируется в PluginRegistry
  */
 import { PluginRegistry } from '../../common/PluginRegistry';
 import API from './API';

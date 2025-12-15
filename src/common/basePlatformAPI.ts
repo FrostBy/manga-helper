@@ -9,10 +9,10 @@ export default abstract class BasePlatformAPI {
   static readonly link: (slug: string) => string;
 
   /**
-   * Extract slug from platform URL
-   * Override this method in platform-specific API class
-   * @param url Full URL to the manga page
-   * @returns Slug string or empty string if invalid
+   * Извлечь slug из URL платформы
+   * Переопределить в API конкретной платформы
+   * @param url Полный URL страницы манги
+   * @returns Slug или пустая строка если невалидный
    */
   static getSlugFromURL(url: string): string {
     try {
@@ -28,18 +28,18 @@ export default abstract class BasePlatformAPI {
   }
 
   /**
-   * Search for manga on this platform (optional, override if supported)
-   * @param _sourcePlatform The platform where the manga was found
-   * @param _slug Slug of the manga on source platform
-   * @param _titles Array of alternative titles to search
-   * @returns SearchResult or false if not found
+   * Поиск манги на платформе (опционально, переопределить если поддерживается)
+   * @param _sourcePlatform Платформа-источник где манга найдена
+   * @param _slug Slug манги на платформе-источнике
+   * @param _titles Массив альтернативных названий для поиска
+   * @returns SearchResult или false если не найдено
    */
   static async search(
     _sourcePlatform: string,
     _slug: string,
     _titles: string[],
   ): Promise<SearchResult | false> {
-    // Default implementation - platform doesn't support search
+    // Платформа не поддерживает поиск
     return false;
   }
 
@@ -68,12 +68,12 @@ export default abstract class BasePlatformAPI {
   }
 
   /**
-   * Fetch with retry logic and exponential backoff
-   * @param url URL to fetch
-   * @param options Fetch options
-   * @param timeout Timeout in milliseconds (default: 10000)
-   * @param maxRetries Maximum number of retry attempts (default: 3)
-   * @returns Response data or null on failure
+   * Fetch с retry и exponential backoff
+   * @param url URL для запроса
+   * @param options Опции fetch
+   * @param timeout Таймаут в миллисекундах (по умолчанию: 10000)
+   * @param maxRetries Максимум попыток (по умолчанию: 3)
+   * @returns Данные ответа или null при ошибке
    */
   static async fetch(
     url: string,
@@ -102,7 +102,7 @@ export default abstract class BasePlatformAPI {
 
           clearTimeout(timeoutId);
 
-          // Check HTTP status
+          // Проверка HTTP статуса
           if (!response.ok) {
             const errorMsg = `HTTP ${response.status} ${response.statusText}`;
             Logger.warn('BasePlatformAPI', errorMsg, {
@@ -110,7 +110,7 @@ export default abstract class BasePlatformAPI {
               status: response.status,
             });
 
-            // Don't retry client errors (4xx), but retry server errors (5xx)
+            // Не ретраим клиентские ошибки (4xx), только серверные (5xx)
             if (response.status >= 400 && response.status < 500) {
               Logger.error('BasePlatformAPI', 'Client error, not retrying', {
                 url,
@@ -119,11 +119,11 @@ export default abstract class BasePlatformAPI {
               return null;
             }
 
-            // Retry server errors
+            // Ретраим серверные ошибки
             throw new Error(errorMsg);
           }
 
-          // Parse response
+          // Парсим ответ
           try {
             const data = await response.clone().json();
             Logger.debug('BasePlatformAPI', 'Fetch successful', { url });
@@ -151,9 +151,9 @@ export default abstract class BasePlatformAPI {
             lastError = error;
           }
 
-          // Retry with exponential backoff
+          // Retry с exponential backoff
           if (attempt < maxRetries) {
-            const backoffMs = Math.min(1000 * Math.pow(2, attempt), 10000); // Max 10s
+            const backoffMs = Math.min(1000 * Math.pow(2, attempt), 10000); // Макс 10с
             Logger.info('BasePlatformAPI', `Retrying in ${backoffMs}ms...`, {
               url,
             });
@@ -166,7 +166,7 @@ export default abstract class BasePlatformAPI {
       } catch (error: any) {
         lastError = error;
 
-        // Don't retry on last attempt
+        // Последняя попытка - не ретраим
         if (attempt === maxRetries) {
           Logger.error(
             'BasePlatformAPI',
@@ -182,8 +182,8 @@ export default abstract class BasePlatformAPI {
   }
 
   /**
-   * Get authentication token for this platform
-   * @returns Token string or empty string if not found
+   * Получить токен авторизации для платформы
+   * @returns Токен или пустая строка если не найден
    */
   protected static getToken(): string {
     return DB.get(this.config.key, '_GLOBAL', 'token', '') || '';

@@ -44,7 +44,7 @@ class DB {
     const platformData: PlatformData = store.get(platform, {}) as PlatformData;
     const data = Get(platformData, [slug, prop], defaultValue);
 
-    // Type guard: check if data is DBRecord
+    // Type guard: проверка что data это DBRecord
     if (data && typeof data === 'object' && 'value' in data) {
       if (!getExpired && this._isExpired(data as DBRecord<T>)) {
         return defaultValue;

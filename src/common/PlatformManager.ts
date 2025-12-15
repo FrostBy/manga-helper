@@ -2,19 +2,19 @@ import { PluginRegistry } from './PluginRegistry';
 import BasePlatformAPI from './basePlatformAPI';
 
 /**
- * Platform Manager - provides access to registered platform APIs
- * Implemented as a Singleton to avoid multiple instances
+ * Platform Manager - доступ к зарегистрированным API платформ
+ * Реализован как Singleton чтобы избежать множественных инстансов
  */
 export default class PlatformManager {
   private static instance: PlatformManager;
 
   /**
-   * Private constructor to prevent direct instantiation
+   * Приватный конструктор для предотвращения прямого создания
    */
   private constructor() {}
 
   /**
-   * Get the singleton instance of PlatformManager
+   * Получить singleton инстанс PlatformManager
    */
   public static getInstance(): PlatformManager {
     if (!PlatformManager.instance) {

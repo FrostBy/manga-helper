@@ -15,7 +15,7 @@ export default class MangaPage extends BasePage {
   private dataService: MangaDataService;
   private ui: MangaPageUI;
 
-  // Page data (state)
+  // Данные страницы (состояние)
   private slug!: string;
   private state!: string;
   private titles!: string[];
@@ -41,13 +41,13 @@ export default class MangaPage extends BasePage {
   protected async initialize() {
     await waitForElm('.tabs-menu');
 
-    // Get current manga slug
+    // Получаем slug текущей манги
     this.slug = MetaData.getSlug();
 
-    // Get UI state (reading status button, etc.)
+    // Получаем состояние UI (кнопка статуса чтения и т.д.)
     this.state = $('.fade.container .btns._group span').text().trim();
 
-    // Load data via DataService
+    // Загружаем данные через DataService
     const data = await this.dataService.fetchMangaData(this.slug);
     this.chapters = data.chapters;
     this.titles = data.titles;
@@ -57,27 +57,27 @@ export default class MangaPage extends BasePage {
     const tabsWrapper = $('.tabs-menu');
     const chaptersTab = tabsWrapper.find('.tabs-item .tabs-item__inner').eq(1);
 
-    // Select chapters tab
+    // Выбираем вкладку глав
     this.selectTab(chaptersTab);
 
-    // Render chapter info
+    // Рендерим инфо о главах
     this.ui.renderChaptersInTab(chaptersTab, this.chapters);
 
-    // Show button
+    // Показываем кнопку
     this.ui.renderPlatformButton();
 
-    // Get all platforms and show list immediately with loaders
+    // Получаем все платформы и сразу показываем список с лоадерами
     const platforms = this.platformManager.getPlatforms();
     this.ui.renderPlatformList(platforms, config.key, this.slug);
 
-    // Get current chapter count for comparison
+    // Получаем кол-во глав для сравнения
     const lastChapterNumber = this.chapters?.data?.at(-1)?.number || 0;
 
-    // Load data for each platform in background (not waiting for all)
+    // Загружаем данные для каждой платформы в фоне (не ждём всех)
     for (const platformKey of Object.keys(platforms)) {
       if (platformKey === config.key) continue;
 
-      // Fire and forget - each platform updates independently
+      // Fire and forget - каждая платформа обновляется независимо
       this.dataService
         .searchOnSinglePlatform(platformKey, this.titles, this.slug)
         .then((data) => {
@@ -91,27 +91,27 @@ export default class MangaPage extends BasePage {
   private setupModalHandlers() {
     const self = this;
 
-    // Refresh button handler
+    // Обработчик кнопки обновления
     $('body').on('click', '.refresh-link', async function (e) {
       e.preventDefault();
       e.stopPropagation();
 
       const platformKey = $(this).data('platform');
 
-      // Show loader
+      // Показываем лоадер
       self.ui.setItemLoading(platformKey);
 
-      // Get current chapter for comparison
+      // Получаем кол-во глав для сравнения
       const lastChapterNumber = self.chapters?.data?.at(-1)?.number || 0;
 
-      // Refresh data (clears cache, preserves manual slug)
+      // Обновляем данные (чистим кеш, сохраняем ручной slug)
       const data = await self.dataService.refreshPlatformData(
         platformKey,
         self.titles,
         self.slug,
       );
 
-      // Update UI
+      // Обновляем UI
       self.ui.updatePlatformItem(data, lastChapterNumber);
     });
 
@@ -135,7 +135,7 @@ export default class MangaPage extends BasePage {
 
       $modal.find('input[name="link"]').val(url);
 
-      // Update second button based on whether slug exists
+      // Обновляем вторую кнопку в зависимости от наличия slug
       const $cleanButton = $modal.find('.button_clean');
       if (savedSlug) {
         $cleanButton.html(`
@@ -189,7 +189,7 @@ export default class MangaPage extends BasePage {
           await self.dataService.deleteSlug(sourceSlug, platformKey);
           unsafeWindow.location.reload();
         } else {
-          // Just close modal
+          // Просто закрываем модалку
           $modal.removeClass('is-open');
           $('body').removeClass('modal-open');
         }
@@ -213,7 +213,7 @@ export default class MangaPage extends BasePage {
   }
 
   async destroy() {
-    // Remove all event listeners
+    // Удаляем все обработчики событий
     $('body').off('click', '.refresh-link');
     $('body').off('click', '.edit-link');
     $(document).off('submit', '#edit-link-form');
@@ -221,13 +221,13 @@ export default class MangaPage extends BasePage {
     $(document).off('click', '[data-close-modal]');
     $(document).off('click', '#edit-link-modal');
 
-    // Remove modal from DOM
+    // Удаляем модалку из DOM
     $('#edit-link-modal').remove();
 
-    // Remove platform button
+    // Удаляем кнопку платформ
     $('.platforms').remove();
 
-    // Destroy UI
+    // Уничтожаем UI
     this.ui.destroy();
   }
 }

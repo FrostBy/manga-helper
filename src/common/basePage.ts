@@ -4,8 +4,8 @@ export default abstract class BasePage {
   protected platformManager: PlatformManager;
 
   /**
-   * Constructor with optional dependency injection
-   * @param platformManager Optional PlatformManager instance (defaults to singleton)
+   * Конструктор с опциональной инъекцией зависимости
+   * @param platformManager Опциональный PlatformManager (по умолчанию singleton)
    */
   constructor(platformManager?: PlatformManager) {
     this.platformManager = platformManager || PlatformManager.getInstance();
@@ -17,8 +17,8 @@ export default abstract class BasePage {
   abstract destroy(): Promise<void>;
 
   /**
-   * Create and initialize a page instance
-   * @param platformManager Optional PlatformManager to inject
+   * Создать и инициализировать экземпляр страницы
+   * @param platformManager Опциональный PlatformManager для инъекции
    */
   static async createInstance<T extends BasePage>(
     this: new (platformManager?: PlatformManager) => T,

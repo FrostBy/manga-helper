@@ -1,5 +1,5 @@
 /**
- * HTML templates for Mangalib MangaPage
+ * HTML шаблоны для страницы манги на Mangalib
  */
 
 // language=HTML
@@ -121,7 +121,7 @@ export const platformListTemplate = `
 `;
 
 /**
- * Creates dropdown button DOM from existing button group
+ * Создаёт DOM кнопки дропдауна из существующей группы кнопок
  */
 export function createDropdownButton(): JQuery<HTMLElement> {
   const group = $('.fade.container .btns._group').clone();

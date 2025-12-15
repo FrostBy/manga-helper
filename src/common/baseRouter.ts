@@ -11,14 +11,14 @@ export default abstract class BaseRouter {
   protected platformManager: PlatformManager;
 
   constructor() {
-    // Use singleton PlatformManager for all pages
+    // Используем singleton PlatformManager для всех страниц
     this.platformManager = PlatformManager.getInstance();
   }
 
   protected abstract preInit(): Promise<void>;
 
   async init() {
-    await this.preInit(); // Execute custom code before initialization
+    await this.preInit(); // Выполнить кастомный код перед инициализацией
 
     const currentPath = window.location.pathname;
     const queryParams = Object.fromEntries(
@@ -34,11 +34,11 @@ export default abstract class BaseRouter {
       return false;
     });
 
-    // Always destroy previous page before creating new one
+    // Всегда уничтожаем предыдущую страницу перед созданием новой
     await this.prevPage?.destroy();
 
     if (route) {
-      // Pass PlatformManager to page via dependency injection
+      // Передаём PlatformManager через dependency injection
       const pageInstance = await route.page.createInstance(
         this.platformManager,
       );
