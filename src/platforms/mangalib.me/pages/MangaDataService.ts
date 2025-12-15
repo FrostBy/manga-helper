@@ -40,7 +40,75 @@ export class MangaDataService {
   }
 
   /**
-   * Поиск манги на других платформах
+   * Поиск манги на одной платформе с кешированием
+   * Возвращает данные из кеша если есть, иначе делает запрос
+   */
+  async searchOnSinglePlatform(
+    platformKey: string,
+    titles: string[],
+    currentSlug: string,
+  ): Promise<SearchResult> {
+    const apis = this.platformManager.getPlatforms();
+    const PlatformAPI = apis[platformKey];
+
+    if (!PlatformAPI) {
+      throw new Error(`Platform ${platformKey} not found`);
+    }
+
+    // Check cache first (TTL: 1 hour)
+    const cacheKey = `search_${platformKey}`;
+    const cached = DB.get<SearchResult | null>(
+      config.key,
+      currentSlug,
+      cacheKey,
+      null,
+    );
+    if (cached) {
+      Logger.debug('MangaDataService', `Cache hit for ${platformKey}`);
+      return cached;
+    }
+
+    try {
+      const data = await PlatformAPI.search(config.key, currentSlug, titles);
+
+      let result: SearchResult;
+
+      if (!data) {
+        // If not found - open platform homepage
+        result = {
+          platform: PlatformAPI.config.title,
+          platformKey,
+          slug: '',
+          url: `https://${PlatformAPI.config.domain}`,
+          chapter: 0,
+          lastChapterRead: 0,
+        };
+      } else {
+        // Add platform title and key
+        data.platform = PlatformAPI.config.title;
+        data.platformKey = platformKey;
+        result = data;
+      }
+
+      // Cache for 1 hour
+      DB.set(config.key, currentSlug, cacheKey, result, true);
+      return result;
+    } catch (e: unknown) {
+      Logger.error('MangaDataService', `Error searching on ${platformKey}`, e);
+      // On error - open platform homepage (don't cache errors)
+      return {
+        platform: PlatformAPI.config.title,
+        platformKey,
+        slug: '',
+        url: `https://${PlatformAPI.config.domain}`,
+        chapter: 0,
+        lastChapterRead: 0,
+      };
+    }
+  }
+
+  /**
+   * Поиск манги на других платформах (deprecated - используй searchOnSinglePlatform)
    */
   async searchOnPlatforms(
     titles: string[],
@@ -132,5 +200,30 @@ export class MangaDataService {
    */
   async deleteSlug(sourceSlug: string, platformKey: string): Promise<void> {
     DB.delete(config.key, sourceSlug, platformKey);
+  }
+
+  /**
+   * Clear cache for platform and re-fetch data
+   * Preserves manually saved slug, only clears cached data
+   */
+  async refreshPlatformData(
+    platformKey: string,
+    titles: string[],
+    currentSlug: string,
+  ): Promise<SearchResult> {
+    // Get saved slug (manual override) - this should NOT be deleted
+    const savedSlug = await this.getSavedSlug(currentSlug, platformKey);
+
+    // If there's a saved slug, invalidate platform's internal cache for it
+    if (savedSlug) {
+      DB.set(platformKey, savedSlug, 'invalidate', true);
+    }
+
+    // Delete MangaDataService's cached search result
+    const cacheKey = `search_${platformKey}`;
+    DB.delete(config.key, currentSlug, cacheKey);
+
+    // Re-fetch (will use saved slug if exists, otherwise search by titles)
+    return this.searchOnSinglePlatform(platformKey, titles, currentSlug);
   }
 }

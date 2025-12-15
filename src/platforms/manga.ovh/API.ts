@@ -6,7 +6,7 @@ import type { MangaData, SearchResult } from '../../common/types';
 export default class API extends BasePlatformAPI {
   static readonly config = config;
   static readonly link = (slug: string) =>
-    `https://inkstory.me/content/${slug}?tab=chapters`;
+    `https://inkstory.net/content/${slug}?tab=chapters`;
 
   static getSlugFromURL(url: string): string {
     try {
@@ -40,7 +40,7 @@ export default class API extends BasePlatformAPI {
     if (!websiteSlug) {
       const requests = titles.map((title) =>
         this.fetch(
-          `https://api.inkstory.me/v2/books?search=${title}&ignoreUserScopedContentStatus=true&serviceName=inkstory`,
+          `https://api.inkstory.net/v2/books?search=${title}&ignoreUserScopedContentStatus=true&serviceName=inkstory`,
         ).then((data) => {
           if (!data || !Array.isArray(data)) {
             return null;
@@ -87,7 +87,7 @@ export default class API extends BasePlatformAPI {
 
   static async getManga(slug: string): Promise<MangaData> {
     const DOM = await this.fetch(
-      `https://inkstory.me/content/${slug}?tab=chapters`,
+      `https://inkstory.net/content/${slug}?tab=chapters`,
     );
 
     if (!DOM) {

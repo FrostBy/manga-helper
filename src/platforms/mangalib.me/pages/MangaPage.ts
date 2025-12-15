@@ -5,6 +5,7 @@ import PlatformManager from '../../../common/PlatformManager';
 import { ChaptersResponse } from '../../../common/types';
 import { MangaDataService } from './MangaDataService';
 import { MangaPageUI } from './MangaPageUI';
+import config from '../config';
 
 /**
  * MangaPage - координатор для страницы манги
@@ -62,29 +63,57 @@ export default class MangaPage extends BasePage {
     // Render chapter info
     this.ui.renderChaptersInTab(chaptersTab, this.chapters);
 
-    // Show button with spinner immediately
+    // Show button
     this.ui.renderPlatformButton();
 
-    // Search manga on other platforms (in background)
-    const platforms = await this.dataService.searchOnPlatforms(
-      this.titles,
-      this.slug,
-    );
+    // Get all platforms and show list immediately with loaders
+    const platforms = this.platformManager.getPlatforms();
+    this.ui.renderPlatformList(platforms, config.key, this.slug);
 
-    // Check if any platform has more chapters
+    // Get current chapter count for comparison
     const lastChapterNumber = this.chapters?.data?.at(-1)?.number || 0;
-    const hasMoreChapters = platforms.some(
-      (p) => p.lastChapterRead > lastChapterNumber,
-    );
 
-    // Update dropdown with data
-    this.ui.updatePlatformList(platforms, hasMoreChapters, this.slug);
+    // Load data for each platform in background (not waiting for all)
+    for (const platformKey of Object.keys(platforms)) {
+      if (platformKey === config.key) continue;
+
+      // Fire and forget - each platform updates independently
+      this.dataService
+        .searchOnSinglePlatform(platformKey, this.titles, this.slug)
+        .then((data) => {
+          this.ui.updatePlatformItem(data, lastChapterNumber);
+        });
+    }
 
     this.setupModalHandlers();
   }
 
   private setupModalHandlers() {
     const self = this;
+
+    // Refresh button handler
+    $('body').on('click', '.refresh-link', async function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const platformKey = $(this).data('platform');
+
+      // Show loader
+      self.ui.setItemLoading(platformKey);
+
+      // Get current chapter for comparison
+      const lastChapterNumber = self.chapters?.data?.at(-1)?.number || 0;
+
+      // Refresh data (clears cache, preserves manual slug)
+      const data = await self.dataService.refreshPlatformData(
+        platformKey,
+        self.titles,
+        self.slug,
+      );
+
+      // Update UI
+      self.ui.updatePlatformItem(data, lastChapterNumber);
+    });
 
     $('body').on('click', '.edit-link', async function (e) {
       e.preventDefault();
@@ -185,6 +214,7 @@ export default class MangaPage extends BasePage {
 
   async destroy() {
     // Remove all event listeners
+    $('body').off('click', '.refresh-link');
     $('body').off('click', '.edit-link');
     $(document).off('submit', '#edit-link-form');
     $(document).off('click', '#edit-link-modal .button_clean');

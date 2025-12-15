@@ -2,10 +2,12 @@ import tippy, { Instance } from 'tippy.js';
 import { ChaptersResponse, SearchResult } from '../../../common/types';
 import {
   loaderTemplate,
-  dropdownListTemplate,
   createDropdownButton,
   editLinkModalTemplate,
+  platformItemTemplate,
+  platformListTemplate,
 } from './templates';
+import BasePlatformAPI from '../../../common/basePlatformAPI';
 
 /**
  * UI класс для MangaPage
@@ -13,6 +15,7 @@ import {
  */
 export class MangaPageUI {
   private tippyInstance: Instance | null = null;
+  private dropdownContent: JQuery<HTMLElement> | null = null;
 
   /**
    * Рендерит информацию о главах в табе
@@ -43,14 +46,12 @@ export class MangaPageUI {
   }
 
   /**
-   * Создает кнопку для дропдауна со спиннером
+   * Создает кнопку для дропдауна (без спиннера)
    */
   renderPlatformButton() {
     const buttonGroup = $('.fade.container .btns._group');
     const openOnPlatforms = createDropdownButton();
     buttonGroup.after(openOnPlatforms);
-
-    this.toggleLoader(openOnPlatforms.find('button').eq(0));
 
     if (!$('#edit-link-modal').length) {
       const $pageModals = $('.page-modals');
@@ -63,55 +64,37 @@ export class MangaPageUI {
   }
 
   /**
-   * Заполняет dropdown платформами и убирает спиннер
+   * Рендерит список платформ СРАЗУ с loaders вместо данных
    */
-  updatePlatformList(
-    platforms: SearchResult[],
-    hasMoreChapters: boolean,
+  renderPlatformList(
+    platforms: Record<string, typeof BasePlatformAPI>,
+    currentPlatformKey: string,
     sourceSlug: string,
   ) {
     const openOnPlatforms = $('.platforms');
+    this.dropdownContent = $(platformListTemplate);
 
-    const content = $(dropdownListTemplate);
-    const listItem = content.find('.menu-item').clone();
-    content.find('.menu-item').remove();
+    // Добавляем все платформы кроме текущей
+    for (const [platformKey, PlatformAPI] of Object.entries(platforms)) {
+      if (platformKey === currentPlatformKey) continue;
 
-    for (const {
-      chapter,
-      lastChapterRead,
-      platform,
-      url,
-      platformKey,
-      slug,
-    } of platforms) {
-      const item = listItem.clone();
-      const $link = item.find('a');
-
-      $link.text(`${platform} | ${chapter || '0'} (${lastChapterRead || '0'})`);
-      $link.attr('href', url);
-
-      // If title not found (no slug) - visually dim with opacity
-      if (!slug) {
-        $link.css({
-          opacity: '0.6',
-        });
-      }
-
+      const item = $(platformItemTemplate);
+      item.attr('data-platform-key', platformKey);
+      item.find('.platform-name').text(PlatformAPI.config.title);
+      item
+        .find('.refresh-link')
+        .attr('data-platform', platformKey)
+        .attr('data-source-slug', sourceSlug);
       item
         .find('.edit-link')
         .attr('data-platform', platformKey)
         .attr('data-source-slug', sourceSlug);
 
-      content.find('.menu-list').append(item);
-    }
-
-    // If other platforms have more chapters - highlight
-    if (hasMoreChapters) {
-      openOnPlatforms.addClass('new');
+      this.dropdownContent.find('.menu-list').append(item);
     }
 
     this.tippyInstance = tippy('.platforms', {
-      content: content[0],
+      content: this.dropdownContent[0],
       allowHTML: true,
       trigger: 'click',
       interactive: true,
@@ -129,8 +112,48 @@ export class MangaPageUI {
     })[0];
 
     this.tippyInstance.show();
+  }
 
-    this.toggleLoader(openOnPlatforms.find('button').eq(0));
+  /**
+   * Показывает loader для платформы (при refresh)
+   */
+  setItemLoading(platformKey: string) {
+    if (!this.dropdownContent) return;
+
+    const item = this.dropdownContent.find(
+      `[data-platform-key="${platformKey}"]`,
+    );
+    if (!item.length) return;
+
+    item.find('.platform-stats').html('<span class="inline-loader">...</span>');
+    item.find('a').css({ opacity: '1' }); // Reset opacity
+  }
+
+  /**
+   * Обновляет данные одной платформы когда они загрузились
+   */
+  updatePlatformItem(data: SearchResult, currentChapter: number) {
+    if (!this.dropdownContent) return;
+
+    const item = this.dropdownContent.find(
+      `[data-platform-key="${data.platformKey}"]`,
+    );
+    if (!item.length) return;
+
+    const $link = item.find('a');
+    const statsText = `${data.chapter || '0'} (${data.lastChapterRead || '0'})`;
+    item.find('.platform-stats').text(statsText);
+    $link.attr('href', data.url);
+
+    // If title not found (no slug) - visually dim with opacity
+    if (!data.slug) {
+      $link.css({ opacity: '0.6' });
+    }
+
+    // If this platform has more chapters than current - highlight button
+    if (data.chapter && data.chapter > currentChapter) {
+      $('.platforms').addClass('new');
+    }
   }
 
   /**
